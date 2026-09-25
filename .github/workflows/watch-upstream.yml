@@ -1,0 +1,68 @@
+# .github/workflows/watch-upstream.yml
+#
+# Prüft stündlich, ob es ein neues Release von
+# Brainicism/bgutil-ytdlp-pot-provider gibt (über den öffentlichen
+# Release-Atom-Feed, kein GitHub-Token/API-Limit nötig) und stößt den
+# Build-Workflow (build-deb.yml) nur an, wenn sich die Version geändert hat.
+#
+# Der zuletzt gesehene Versionsstand wird in .github/last-upstream-version
+# im Repo committet, damit der Vergleich über Runs hinweg funktioniert.
+
+name: Watch upstream release
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # stündlich
+  workflow_dispatch: {}
+
+env:
+  UPSTREAM_REPO: Brainicism/bgutil-ytdlp-pot-provider
+  STATE_FILE: .github/last-upstream-version
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Neueste Upstream-Version aus Atom-Feed lesen
+        id: latest
+        run: |
+          VERSION="$(curl -s "https://github.com/${UPSTREAM_REPO}/releases.atom" \
+            | grep -m1 '<title>' | sed -n '2p' \
+            | sed -e 's/<title>//' -e 's/<\/title>//' -e 's/^[[:space:]]*//')"
+          echo "Aktuellstes Upstream-Release laut Feed: ${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Letzten bekannten Stand lesen
+        id: known
+        run: |
+          if [ -f "${STATE_FILE}" ]; then
+            echo "version=$(cat "${STATE_FILE}")" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build auslösen, falls neue Version
+        if: steps.latest.outputs.version != steps.known.outputs.version && steps.latest.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Neue Version erkannt: ${{ steps.known.outputs.version }} -> ${{ steps.latest.outputs.version }}"
+          gh api repos/${{ github.repository }}/dispatches \
+            -f event_type=new-upstream-release \
+            -f "client_payload[version]=${{ steps.latest.outputs.version }}"
+
+      - name: Neuen Stand committen
+        if: steps.latest.outputs.version != steps.known.outputs.version && steps.latest.outputs.version != ''
+        run: |
+          mkdir -p "$(dirname "${STATE_FILE}")"
+          echo "${{ steps.latest.outputs.version }}" > "${STATE_FILE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${STATE_FILE}"
+          git commit -m "Upstream-Version aktualisiert: ${{ steps.latest.outputs.version }}"
+          git push

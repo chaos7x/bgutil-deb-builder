@@ -1,0 +1,160 @@
+# .github/workflows/build-deb.yml
+#
+# Baut aus https://github.com/Brainicism/bgutil-ytdlp-pot-provider ein
+# Debian-Paket inkl. systemd-Service und veröffentlicht es als
+# Workflow-Artifact bzw. bei einem Tag-Push als GitHub-Release-Asset.
+#
+# Nutzung:
+#   1. Diese Datei in ein eigenes (leeres) Repo unter .github/workflows/ legen.
+#   2. Manuell anstoßen ("Run workflow") und die gewünschte Upstream-Version
+#      angeben, ODER wöchentlich automatisch die neueste Version bauen lassen.
+
+name: Build bgutil-ytdlp-pot-provider .deb
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_version:
+        description: "Upstream-Tag (z.B. 1.3.2). Leer = neuestes Release."
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [new-upstream-release]
+
+env:
+  PKG_NAME: bgutil-ytdlp-pot-provider
+  UPSTREAM_REPO: Brainicism/bgutil-ytdlp-pot-provider
+  ARCH: amd64
+  SVC_USER: bgutil
+  INSTALL_PREFIX: /opt/bgutil-ytdlp-pot-provider
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Neueste Upstream-Version ermitteln
+        id: ver
+        run: |
+          if [ -n "${{ github.event.client_payload.version }}" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+          elif [ -n "${{ github.event.inputs.upstream_version }}" ]; then
+            VERSION="${{ github.event.inputs.upstream_version }}"
+          else
+            VERSION="$(curl -s https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest | jq -r .tag_name)"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Baue Version: ${VERSION}"
+
+      - name: Upstream-Repo klonen
+        run: |
+          git clone --depth 1 --branch "${{ steps.ver.outputs.version }}" \
+            "https://github.com/${UPSTREAM_REPO}.git" src
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Ruby (für fpm) einrichten
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: fpm installieren
+        run: gem install --no-document fpm
+
+      - name: Provider bauen
+        working-directory: src/server
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
+          npx tsc
+
+      - name: Staging-Verzeichnis vorbereiten
+        run: |
+          STAGE="$GITHUB_WORKSPACE/stage"
+          mkdir -p "${STAGE}${INSTALL_PREFIX}"
+          mkdir -p "${STAGE}/etc/systemd/system"
+          cp -r src/server/build src/server/node_modules src/server/package.json \
+            "${STAGE}${INSTALL_PREFIX}/"
+          echo "STAGE=${STAGE}" >> "$GITHUB_ENV"
+
+      - name: systemd-Unit schreiben
+        run: |
+          cat > "${STAGE}/etc/systemd/system/${PKG_NAME}.service" <<EOF
+          [Unit]
+          Description=BgUtils POT Provider fuer yt-dlp
+          After=network.target
+          Documentation=https://github.com/${UPSTREAM_REPO}
+
+          [Service]
+          Type=simple
+          WorkingDirectory=${INSTALL_PREFIX}
+          ExecStart=/usr/bin/node ${INSTALL_PREFIX}/build/main.js
+          Restart=on-failure
+          RestartSec=5
+          User=${SVC_USER}
+          Group=${SVC_USER}
+          Environment=TOKEN_TTL=6
+          NoNewPrivileges=true
+          ProtectSystem=strict
+          ReadWritePaths=${INSTALL_PREFIX}
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+      - name: postinst / prerm schreiben
+        run: |
+          mkdir -p "${STAGE}/DEBIAN"
+          cat > "${STAGE}/DEBIAN/postinst" <<EOF
+          #!/bin/sh
+          set -e
+          if ! getent passwd ${SVC_USER} >/dev/null; then
+            adduser --system --group --no-create-home --home ${INSTALL_PREFIX} ${SVC_USER}
+          fi
+          chown -R ${SVC_USER}:${SVC_USER} ${INSTALL_PREFIX}
+          systemctl daemon-reload
+          exit 0
+          EOF
+          cat > "${STAGE}/DEBIAN/prerm" <<EOF
+          #!/bin/sh
+          set -e
+          systemctl stop ${PKG_NAME} 2>/dev/null || true
+          systemctl disable ${PKG_NAME} 2>/dev/null || true
+          exit 0
+          EOF
+          chmod 0755 "${STAGE}/DEBIAN/postinst" "${STAGE}/DEBIAN/prerm"
+
+      - name: .deb bauen
+        run: |
+          cd "${STAGE}"
+          VERSION="${{ steps.ver.outputs.version }}"
+          VERSION="${VERSION#v}"
+          fpm -s dir -t deb \
+            -n "${PKG_NAME}" \
+            -v "${VERSION}" \
+            -a "${ARCH}" \
+            --after-install DEBIAN/postinst \
+            --before-remove DEBIAN/prerm \
+            --depends nodejs \
+            --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server + systemd-Service)" \
+            --url "https://github.com/${UPSTREAM_REPO}" \
+            --license "GPL-3.0-or-later" \
+            --deb-systemd "etc/systemd/system/${PKG_NAME}.service" \
+            -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
+            "${INSTALL_PREFIX#/}=/" \
+            "etc=/"
+
+      - name: Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-deb
+          path: "*.deb"
+
+      - name: Als GitHub-Release veröffentlichen
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.deb"
