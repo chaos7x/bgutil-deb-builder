@@ -53,7 +53,7 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Ruby (für fpm) einrichten
         uses: ruby/setup-ruby@v1
@@ -66,8 +66,14 @@ jobs:
       - name: Provider bauen
         working-directory: src/server
         run: |
-          corepack enable
-          yarn install --frozen-lockfile
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile
+          else
+            npm install
+          fi
           npx tsc
 
       - name: Staging-Verzeichnis vorbereiten
