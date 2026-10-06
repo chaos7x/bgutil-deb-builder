@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# PROVIDE: bgutil_ytdlp_pot_provider
+# REQUIRE: LOGIN NETWORKING
+# KEYWORD: shutdown
+#
+# rc.d-Skript fuer den BgUtils POT Provider auf FreeBSD.
+# Installation und Einstellungen siehe init/freebsd/README.md.
+#
+# In /etc/rc.conf:
+#   bgutil_ytdlp_pot_provider_enable="YES"
+# Optional:
+#   bgutil_ytdlp_pot_provider_user="bgutil"
+#   bgutil_ytdlp_pot_provider_dir="/usr/local/lib/bgutil-ytdlp-pot-provider"
+#   bgutil_ytdlp_pot_provider_token_ttl="6"
+
+. /etc/rc.subr
+
+name="bgutil_ytdlp_pot_provider"
+rcvar="${name}_enable"
+
+load_rc_config $name
+
+: ${bgutil_ytdlp_pot_provider_enable:="NO"}
+: ${bgutil_ytdlp_pot_provider_user:="bgutil"}
+: ${bgutil_ytdlp_pot_provider_dir:="/usr/local/lib/bgutil-ytdlp-pot-provider"}
+: ${bgutil_ytdlp_pot_provider_token_ttl:="6"}
+: ${bgutil_ytdlp_pot_provider_logfile:="/var/log/bgutil-ytdlp-pot-provider.log"}
+
+# daemon(8) ueberwacht node und startet es bei Absturz neu (-r);
+# die PID-Datei gehoert dem Ueberwachungsprozess.
+pidfile="/var/run/${name}.pid"
+node="/usr/local/bin/node"
+
+command="/usr/sbin/daemon"
+command_args="-r -P ${pidfile} -o ${bgutil_ytdlp_pot_provider_logfile} \
+-u ${bgutil_ytdlp_pot_provider_user} ${node} ${bgutil_ytdlp_pot_provider_dir}/build/main.js"
+
+start_precmd="${name}_prestart"
+
+bgutil_ytdlp_pot_provider_prestart()
+{
+	if [ ! -f "${bgutil_ytdlp_pot_provider_dir}/build/main.js" ]; then
+		err 1 "${bgutil_ytdlp_pot_provider_dir}/build/main.js nicht gefunden"
+	fi
+	touch "${bgutil_ytdlp_pot_provider_logfile}"
+	chown "${bgutil_ytdlp_pot_provider_user}" "${bgutil_ytdlp_pot_provider_logfile}"
+	cd "${bgutil_ytdlp_pot_provider_dir}" || return 1
+	export TOKEN_TTL="${bgutil_ytdlp_pot_provider_token_ttl}"
+}
+
+run_rc_command "$1"

@@ -38,6 +38,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Eigenes Repo auschecken (Init-Skripte)
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
       - name: Neueste Upstream-Version ermitteln
         id: ver
         env:
@@ -142,14 +147,36 @@ jobs:
             adduser --system --group --no-create-home --home ${INSTALL_PREFIX} ${SVC_USER}
           fi
           chown -R ${SVC_USER}:${SVC_USER} ${INSTALL_PREFIX}
+          # Ohne systemd (z. B. Devuan) den sysvinit-Dienst registrieren und starten.
+          if [ ! -d /run/systemd/system ] && [ -x /etc/init.d/${PKG_NAME} ]; then
+            update-rc.d ${PKG_NAME} defaults >/dev/null
+            invoke-rc.d ${PKG_NAME} start || true
+          fi
+          EOF
+          cat > "${STAGE}/DEBIAN/postupgrade" <<EOF
+          #!/bin/sh
+          if [ ! -d /run/systemd/system ] && [ -x /etc/init.d/${PKG_NAME} ]; then
+            update-rc.d ${PKG_NAME} defaults >/dev/null
+            invoke-rc.d ${PKG_NAME} restart || true
+          fi
           EOF
           cat > "${STAGE}/DEBIAN/prerm" <<EOF
           #!/bin/sh
           set -e
           systemctl stop ${PKG_NAME} 2>/dev/null || true
           systemctl disable ${PKG_NAME} 2>/dev/null || true
+          if [ ! -d /run/systemd/system ] && [ -x /etc/init.d/${PKG_NAME} ]; then
+            invoke-rc.d ${PKG_NAME} stop || true
+          fi
           EOF
-          chmod 0755 "${STAGE}/DEBIAN/postinst" "${STAGE}/DEBIAN/prerm"
+          cat > "${STAGE}/DEBIAN/postrm" <<EOF
+          #!/bin/sh
+          # Runlevel-Links schon beim Entfernen löschen: fpm verdrahtet
+          # --deb-after-purge nicht, und postinst legt sie neu an.
+          update-rc.d -f ${PKG_NAME} remove >/dev/null 2>&1 || true
+          EOF
+          chmod 0755 "${STAGE}/DEBIAN/postinst" "${STAGE}/DEBIAN/postupgrade" \
+            "${STAGE}/DEBIAN/prerm" "${STAGE}/DEBIAN/postrm"
 
       - name: .deb bauen
         run: |
@@ -161,12 +188,15 @@ jobs:
             -v "${VERSION}" \
             -a "${ARCH}" \
             --after-install DEBIAN/postinst \
+            --after-upgrade DEBIAN/postupgrade \
             --before-remove DEBIAN/prerm \
+            --after-remove DEBIAN/postrm \
             --depends "nodejs (>= 20.19)" \
-            --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-Service und yt-dlp-Plugin)" \
+            --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-/sysvinit-Dienst und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-or-later" \
             --deb-systemd "etc/systemd/system/${PKG_NAME}.service" \
+            --deb-init "$GITHUB_WORKSPACE/builder/init/sysvinit/${PKG_NAME}" \
             --deb-no-default-config-files \
             --deb-suggests yt-dlp \
             -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
@@ -184,4 +214,6 @@ jobs:
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.ver.outputs.version }}
           name: ${{ env.PKG_NAME }} ${{ steps.ver.outputs.version }}
-          files: "*.deb"
+          files: |
+            *.deb
+            builder/init/freebsd/bgutil_ytdlp_pot_provider
