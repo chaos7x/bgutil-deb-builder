@@ -130,15 +130,12 @@ jobs:
             adduser --system --group --no-create-home --home ${INSTALL_PREFIX} ${SVC_USER}
           fi
           chown -R ${SVC_USER}:${SVC_USER} ${INSTALL_PREFIX}
-          systemctl daemon-reload
-          exit 0
           EOF
           cat > "${STAGE}/DEBIAN/prerm" <<EOF
           #!/bin/sh
           set -e
           systemctl stop ${PKG_NAME} 2>/dev/null || true
           systemctl disable ${PKG_NAME} 2>/dev/null || true
-          exit 0
           EOF
           chmod 0755 "${STAGE}/DEBIAN/postinst" "${STAGE}/DEBIAN/prerm"
 
@@ -159,8 +156,7 @@ jobs:
             --license "GPL-3.0-or-later" \
             --deb-systemd "etc/systemd/system/${PKG_NAME}.service" \
             -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
-            "${INSTALL_PREFIX#/}=/" \
-            "etc=/"
+            "${INSTALL_PREFIX#/}=$(dirname "${INSTALL_PREFIX}")"
 
       - name: Artifact hochladen
         uses: actions/upload-artifact@v4
