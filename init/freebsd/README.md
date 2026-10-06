@@ -1,17 +1,28 @@
 # BgUtils POT Provider auf FreeBSD
 
-Das .deb gibt es nur für Debian/Devuan. Auf FreeBSD wird der Server aus dem
-Upstream-Quelltext gebaut und mit dem rc.d-Skript aus diesem Ordner als
-Dienst gestartet. Das npm-Paket `canvas` hat für FreeBSD keine fertigen
-Binärdateien und wird beim Installieren kompiliert, deshalb die
-Build-Abhängigkeiten.
+## Installation per pkg (empfohlen)
 
-## Installation
+Jedes Release enthält ein fertiges pkg für FreeBSD 14 (amd64) mit Server,
+rc.d-Skript und yt-dlp-Plugin. Gebaut wird es von
+[freebsd/build-pkg.sh](../../freebsd/build-pkg.sh) im Workflow.
+
+```sh
+pkg install node22
+fetch https://github.com/chaos7x/bgutil-deb-builder/releases/download/2.0.1/bgutil-ytdlp-pot-provider-2.0.1.pkg
+pkg add ./bgutil-ytdlp-pot-provider-2.0.1.pkg
+sysrc bgutil_ytdlp_pot_provider_enable=YES
+service bgutil_ytdlp_pot_provider start
+```
+
+## Manuelle Installation aus dem Quelltext
+
+Das npm-Paket `canvas` hat für FreeBSD keine fertigen Binärdateien und wird
+beim Installieren kompiliert, deshalb die Build-Abhängigkeiten.
 
 ```sh
 # Node.js, npm und Build-Abhängigkeiten für canvas
 pkg install node22 npm-node22 git zip gmake pkgconf python3 \
-  cairo pango jpeg-turbo giflib librsvg2
+  cairo pango jpeg-turbo giflib librsvg2-rust
 
 # Dienstbenutzer
 pw useradd bgutil -d /nonexistent -s /usr/sbin/nologin -c "BgUtils POT Provider"

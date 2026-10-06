@@ -37,6 +37,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - name: Eigenes Repo auschecken (Init-Skripte)
         uses: actions/checkout@v4
@@ -111,31 +113,9 @@ jobs:
           find plugin-bundle -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
           (cd plugin-bundle && zip -9 -r "${STAGE}${PLUGIN_DIR}/${PKG_NAME}.zip" yt_dlp_plugins)
 
-      - name: systemd-Unit schreiben
+      - name: systemd-Unit übernehmen
         run: |
-          cat > "${STAGE}/etc/systemd/system/${PKG_NAME}.service" <<EOF
-          [Unit]
-          Description=BgUtils POT Provider fuer yt-dlp
-          After=network.target
-          Documentation=https://github.com/${UPSTREAM_REPO}
-
-          [Service]
-          Type=simple
-          WorkingDirectory=${INSTALL_PREFIX}
-          ExecStart=/usr/bin/node ${INSTALL_PREFIX}/build/main.js
-          Restart=on-failure
-          RestartSec=5
-          User=${SVC_USER}
-          Group=${SVC_USER}
-          Environment=TOKEN_TTL=6
-          NoNewPrivileges=true
-          ProtectSystem=strict
-          ReadWritePaths=${INSTALL_PREFIX}
-          PrivateTmp=true
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
+          cp "builder/init/systemd/${PKG_NAME}.service" "${STAGE}/etc/systemd/system/"
 
       - name: postinst / prerm schreiben
         run: |
@@ -217,3 +197,63 @@ jobs:
           files: |
             *.deb
             builder/init/freebsd/bgutil_ytdlp_pot_provider
+
+  freebsd:
+    # Baut dasselbe Upstream-Release als FreeBSD-pkg in einer FreeBSD-VM und
+    # hängt es an das Release, das der build-Job angelegt hat.
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Eigenes Repo auschecken
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
+      - name: Upstream-Repo klonen
+        run: |
+          git clone --depth 1 --branch "${{ needs.build.outputs.version }}" \
+            "https://github.com/${UPSTREAM_REPO}.git" src
+
+      - name: In FreeBSD bauen und testen
+        timeout-minutes: 30
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.3"
+          usesh: true
+          prepare: |
+            pkg install -y node22 npm-node22 git zip gmake pkgconf python3 \
+              cairo pango jpeg-turbo giflib librsvg2-rust
+          run: |
+            set -e
+            sh builder/freebsd/build-pkg.sh "${{ needs.build.outputs.version }}" src builder out
+            # Rauchtest: installieren, Dienst starten, /ping abfragen, entfernen.
+            pkg add out/*.pkg
+            sysrc bgutil_ytdlp_pot_provider_enable=YES
+            cat > smoke.sh <<'SMOKE'
+            timeout --foreground 30 service bgutil_ytdlp_pot_provider start
+            sleep 5
+            timeout 15 fetch -T 10 -qo - http://127.0.0.1:4416/ping
+            echo
+            timeout --foreground 30 service bgutil_ytdlp_pot_provider stop
+            ! pgrep -f 'build/main.js'
+            SMOKE
+            if ! sh -ex smoke.sh; then
+              echo "--- Log ---"
+              tail -n 50 /var/log/bgutil-ytdlp-pot-provider.log || true
+              pgrep -lf build/main.js || true
+              exit 1
+            fi
+            pkg delete -y bgutil-ytdlp-pot-provider
+
+      - name: Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-freebsd
+          path: out/*.pkg
+
+      - name: An GitHub-Release anhängen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || needs.build.outputs.version }}
+          name: ${{ env.PKG_NAME }} ${{ needs.build.outputs.version }}
+          files: out/*.pkg
