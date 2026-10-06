@@ -1,0 +1,21 @@
+[Unit]
+Description=BgUtils POT Provider fuer yt-dlp
+After=network.target
+Documentation=https://github.com/Brainicism/bgutil-ytdlp-pot-provider
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/lib/bgutil-ytdlp-pot-provider
+ExecStart=/usr/bin/node /usr/lib/bgutil-ytdlp-pot-provider/build/main.js
+Restart=on-failure
+RestartSec=5
+User=bgutil
+Group=bgutil
+Environment=TOKEN_TTL=6
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/usr/lib/bgutil-ytdlp-pot-provider
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

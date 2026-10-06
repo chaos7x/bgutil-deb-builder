@@ -13,7 +13,8 @@ Neue Upstream-Versionen werden automatisch gebaut.
 | | Debian / Devuan (`.deb`) | FreeBSD (`.pkg`) |
 | --- | --- | --- |
 | Server | `/usr/lib/bgutil-ytdlp-pot-provider` | `/usr/local/lib/bgutil-ytdlp-pot-provider` |
-| Dienst | systemd-Unit und `/etc/init.d/`-Skript | `/usr/local/etc/rc.d/bgutil_ytdlp_pot_provider` |
+| Dienst (systemd) | `/lib/systemd/system/bgutil-ytdlp-pot-provider.service` | – |
+| Dienst (sysvinit / rc.d) | `/etc/init.d/bgutil-ytdlp-pot-provider` | `/usr/local/etc/rc.d/bgutil_ytdlp_pot_provider` |
 | yt-dlp-Plugin | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` |
 | Dienstbenutzer | `bgutil` | `bgutil` |
 | Node.js | `nodejs (>= 20.19)` | `node22` oder neuer |
@@ -33,11 +34,24 @@ wget https://github.com/chaos7x/bgutil-deb-builder/releases/download/2.0.1/bguti
 sudo apt install ./bgutil-ytdlp-pot-provider_2.0.1_amd64.deb
 ```
 
-Mit systemd:
+Mit systemd wird der Dienst installiert, aber nicht automatisch aktiviert:
 
 ```sh
 sudo systemctl enable --now bgutil-ytdlp-pot-provider
+systemctl status bgutil-ytdlp-pot-provider
 journalctl -u bgutil-ytdlp-pot-provider
+```
+
+Einstellungen wie `TOKEN_TTL` lassen sich per Drop-in ändern, ohne die
+Unit selbst anzufassen:
+
+```sh
+sudo systemctl edit bgutil-ytdlp-pot-provider
+```
+
+```ini
+[Service]
+Environment=TOKEN_TTL=12
 ```
 
 Ohne systemd (z. B. Devuan) wird der Dienst bei der Installation automatisch
@@ -98,6 +112,7 @@ Upstream-Tag; leer gelassen wird das neueste Release gebaut.
 
 ```
 .github/workflows/   Watcher und Build-Workflow
+init/systemd/        systemd-Unit
 init/sysvinit/       init.d-Skript für Systeme ohne systemd
 init/freebsd/        rc.d-Skript und FreeBSD-Anleitung
 freebsd/             Build-Skript für das FreeBSD-pkg

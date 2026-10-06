@@ -113,31 +113,9 @@ jobs:
           find plugin-bundle -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
           (cd plugin-bundle && zip -9 -r "${STAGE}${PLUGIN_DIR}/${PKG_NAME}.zip" yt_dlp_plugins)
 
-      - name: systemd-Unit schreiben
+      - name: systemd-Unit übernehmen
         run: |
-          cat > "${STAGE}/etc/systemd/system/${PKG_NAME}.service" <<EOF
-          [Unit]
-          Description=BgUtils POT Provider fuer yt-dlp
-          After=network.target
-          Documentation=https://github.com/${UPSTREAM_REPO}
-
-          [Service]
-          Type=simple
-          WorkingDirectory=${INSTALL_PREFIX}
-          ExecStart=/usr/bin/node ${INSTALL_PREFIX}/build/main.js
-          Restart=on-failure
-          RestartSec=5
-          User=${SVC_USER}
-          Group=${SVC_USER}
-          Environment=TOKEN_TTL=6
-          NoNewPrivileges=true
-          ProtectSystem=strict
-          ReadWritePaths=${INSTALL_PREFIX}
-          PrivateTmp=true
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
+          cp "builder/init/systemd/${PKG_NAME}.service" "${STAGE}/etc/systemd/system/"
 
       - name: postinst / prerm schreiben
         run: |
