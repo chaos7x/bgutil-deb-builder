@@ -117,6 +117,11 @@ jobs:
         run: |
           cp "builder/init/systemd/${PKG_NAME}.service" "${STAGE}/etc/systemd/system/"
 
+      - name: copyright-Datei übernehmen
+        run: |
+          install -D -m 0644 builder/debian/copyright \
+            "${STAGE}/usr/share/doc/${PKG_NAME}/copyright"
+
       - name: postinst / prerm schreiben
         run: |
           mkdir -p "${STAGE}/DEBIAN"
@@ -174,14 +179,15 @@ jobs:
             --depends "nodejs (>= 20.19)" \
             --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-/sysvinit-Dienst und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
-            --license "GPL-3.0-or-later" \
+            --license "GPL-3.0-only" \
             --deb-systemd "etc/systemd/system/${PKG_NAME}.service" \
             --deb-init "$GITHUB_WORKSPACE/builder/init/sysvinit/${PKG_NAME}" \
             --deb-no-default-config-files \
             --deb-suggests yt-dlp \
             -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
             "${INSTALL_PREFIX#/}=$(dirname "${INSTALL_PREFIX}")" \
-            "${PLUGIN_DIR#/}=$(dirname "${PLUGIN_DIR}")"
+            "${PLUGIN_DIR#/}=$(dirname "${PLUGIN_DIR}")" \
+            "usr/share/doc/${PKG_NAME}=/usr/share/doc"
 
       - name: Artifact hochladen
         uses: actions/upload-artifact@v4

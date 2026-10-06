@@ -45,6 +45,8 @@ npm prune --omit=dev
 mkdir -p "$STAGE$APP_DIR" "$STAGE$PLUGIN_DIR" "$STAGE/usr/local/etc/rc.d"
 cp -R build node_modules package.json "$STAGE$APP_DIR/"
 install -m 555 "$BUILDER/init/freebsd/$RC_NAME" "$STAGE/usr/local/etc/rc.d/$RC_NAME"
+mkdir -p "$STAGE/usr/local/share/doc/$PKG_NAME"
+install -m 444 "$SRC/LICENSE" "$STAGE/usr/local/share/doc/$PKG_NAME/LICENSE"
 
 # yt-dlp-Plugin wie upstream release.yml bündeln.
 mkdir -p "$WORK/plugin"
@@ -86,7 +88,7 @@ abi: "$ABI"
 arch: "$ABI"
 prefix: "/usr/local"
 licenselogic: "single"
-licenses: [ "GPLv3+" ]
+licenses: [ "GPLv3" ]
 categories: [ "www" ]
 deps: {
 $DEPS}

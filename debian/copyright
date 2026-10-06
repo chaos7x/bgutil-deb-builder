@@ -1,0 +1,33 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: bgutil-ytdlp-pot-provider
+Upstream-Contact: https://github.com/Brainicism/bgutil-ytdlp-pot-provider/issues
+Source: https://github.com/Brainicism/bgutil-ytdlp-pot-provider
+
+Files: *
+Copyright: Brainicism and the bgutil-ytdlp-pot-provider contributors
+License: GPL-3.0-only
+
+Files: usr/lib/bgutil-ytdlp-pot-provider/node_modules/*
+Copyright: The respective authors of each npm package
+License: various
+ The bundled npm dependencies keep their own licenses. Each package's
+ license is named in its package.json and, where provided, in the
+ LICENSE file inside its directory under node_modules/.
+
+Files: etc/init.d/* lib/systemd/system/* etc/systemd/system/*
+Copyright: chaos7x and the bgutil-deb-builder contributors
+License: GPL-3.0-only
+Comment: Packaging from https://github.com/chaos7x/bgutil-deb-builder
+
+License: GPL-3.0-only
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, version 3.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License version 3 can be found in "/usr/share/common-licenses/GPL-3".
