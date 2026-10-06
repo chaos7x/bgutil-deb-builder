@@ -200,9 +200,7 @@ jobs:
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.ver.outputs.version }}
           name: ${{ env.PKG_NAME }} ${{ steps.ver.outputs.version }}
-          files: |
-            *.deb
-            builder/init/freebsd/bgutil_ytdlp_pot_provider
+          files: "*.deb"
 
   freebsd:
     # Baut dasselbe Upstream-Release als FreeBSD-pkg in einer FreeBSD-VM und
