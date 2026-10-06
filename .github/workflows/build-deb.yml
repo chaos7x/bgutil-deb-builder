@@ -29,7 +29,7 @@ env:
   UPSTREAM_REPO: Brainicism/bgutil-ytdlp-pot-provider
   ARCH: amd64
   SVC_USER: bgutil
-  INSTALL_PREFIX: /opt/bgutil-ytdlp-pot-provider
+  INSTALL_PREFIX: /usr/lib/bgutil-ytdlp-pot-provider
 
 jobs:
   build:
@@ -150,7 +150,7 @@ jobs:
             -a "${ARCH}" \
             --after-install DEBIAN/postinst \
             --before-remove DEBIAN/prerm \
-            --depends nodejs \
+            --depends "nodejs (>= 22)" \
             --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server + systemd-Service)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-or-later" \
