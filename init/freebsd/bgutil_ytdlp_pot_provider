@@ -27,16 +27,21 @@ load_rc_config $name
 : ${bgutil_ytdlp_pot_provider_token_ttl:="6"}
 : ${bgutil_ytdlp_pot_provider_logfile:="/var/log/bgutil-ytdlp-pot-provider.log"}
 
+# rc.subr wuerde bei gesetztem ${name}_user den ganzen Befehl per su als
+# dieser Benutzer starten. daemon(8) soll aber als root laufen und erst node
+# mit -u herabstufen, deshalb den Wert umkopieren und die Variable leeren.
+_svc_user="${bgutil_ytdlp_pot_provider_user}"
+unset bgutil_ytdlp_pot_provider_user
+
 # daemon(8) ueberwacht node und startet es bei Absturz neu (-r);
-# die PID-Datei gehoert dem Ueberwachungsprozess. daemon schreibt sie erst
-# nach dem Wechsel zum Dienstbenutzer, deshalb ein eigenes Verzeichnis.
+# die PID-Datei gehoert dem Ueberwachungsprozess.
 piddir="/var/run/${name}"
 pidfile="${piddir}/${name}.pid"
 node="/usr/local/bin/node"
 
 command="/usr/sbin/daemon"
 command_args="-f -r -P ${pidfile} -o ${bgutil_ytdlp_pot_provider_logfile} \
--u ${bgutil_ytdlp_pot_provider_user} ${node} ${bgutil_ytdlp_pot_provider_dir}/build/main.js"
+-u ${_svc_user} ${node} ${bgutil_ytdlp_pot_provider_dir}/build/main.js"
 
 start_precmd="${name}_prestart"
 
@@ -45,9 +50,9 @@ bgutil_ytdlp_pot_provider_prestart()
 	if [ ! -f "${bgutil_ytdlp_pot_provider_dir}/build/main.js" ]; then
 		err 1 "${bgutil_ytdlp_pot_provider_dir}/build/main.js nicht gefunden"
 	fi
-	install -d -o "${bgutil_ytdlp_pot_provider_user}" -m 755 "${piddir}"
+	install -d -m 755 "${piddir}"
 	touch "${bgutil_ytdlp_pot_provider_logfile}"
-	chown "${bgutil_ytdlp_pot_provider_user}" "${bgutil_ytdlp_pot_provider_logfile}"
+	chown "${_svc_user}" "${bgutil_ytdlp_pot_provider_logfile}"
 	cd "${bgutil_ytdlp_pot_provider_dir}" || return 1
 	export TOKEN_TTL="${bgutil_ytdlp_pot_provider_token_ttl}"
 }
