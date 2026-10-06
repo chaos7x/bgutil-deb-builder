@@ -37,6 +37,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - name: Eigenes Repo auschecken (Init-Skripte)
         uses: actions/checkout@v4
@@ -217,3 +219,53 @@ jobs:
           files: |
             *.deb
             builder/init/freebsd/bgutil_ytdlp_pot_provider
+
+  freebsd:
+    # Baut dasselbe Upstream-Release als FreeBSD-pkg in einer FreeBSD-VM und
+    # hängt es an das Release, das der build-Job angelegt hat.
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Eigenes Repo auschecken
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
+      - name: Upstream-Repo klonen
+        run: |
+          git clone --depth 1 --branch "${{ needs.build.outputs.version }}" \
+            "https://github.com/${UPSTREAM_REPO}.git" src
+
+      - name: In FreeBSD bauen und testen
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.3"
+          usesh: true
+          prepare: |
+            pkg install -y node22 npm-node22 git zip gmake pkgconf python3 \
+              cairo pango jpeg-turbo giflib librsvg2-rust
+          run: |
+            set -e
+            sh builder/freebsd/build-pkg.sh "${{ needs.build.outputs.version }}" src builder out
+            # Rauchtest: installieren, Dienst starten, /ping abfragen, entfernen.
+            pkg add out/*.pkg
+            sysrc bgutil_ytdlp_pot_provider_enable=YES
+            service bgutil_ytdlp_pot_provider start
+            sleep 5
+            fetch -qo - http://127.0.0.1:4416/ping
+            echo
+            service bgutil_ytdlp_pot_provider stop
+            pkg delete -y bgutil-ytdlp-pot-provider
+
+      - name: Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-freebsd
+          path: out/*.pkg
+
+      - name: An GitHub-Release anhängen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || needs.build.outputs.version }}
+          name: ${{ env.PKG_NAME }} ${{ needs.build.outputs.version }}
+          files: out/*.pkg
