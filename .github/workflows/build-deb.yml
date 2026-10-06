@@ -30,6 +30,9 @@ env:
   ARCH: amd64
   SVC_USER: bgutil
   INSTALL_PREFIX: /usr/lib/bgutil-ytdlp-pot-provider
+  # Systemweites Plugin-Verzeichnis, das yt-dlp in jeder Installationsart
+  # (apt, pip, Standalone-Binary) durchsucht.
+  PLUGIN_DIR: /etc/yt-dlp/plugins
 
 jobs:
   build:
@@ -94,6 +97,15 @@ jobs:
             "${STAGE}${INSTALL_PREFIX}/"
           echo "STAGE=${STAGE}" >> "$GITHUB_ENV"
 
+      - name: yt-dlp-Plugin bündeln
+        run: |
+          # Wie upstream release.yml: yt_dlp_plugins/ als ZIP, damit Plugin
+          # und Server immer aus demselben Tag stammen.
+          mkdir -p "${STAGE}${PLUGIN_DIR}" plugin-bundle
+          cp -r src/plugin/yt_dlp_plugins plugin-bundle/
+          find plugin-bundle -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
+          (cd plugin-bundle && zip -9 -r "${STAGE}${PLUGIN_DIR}/${PKG_NAME}.zip" yt_dlp_plugins)
+
       - name: systemd-Unit schreiben
         run: |
           cat > "${STAGE}/etc/systemd/system/${PKG_NAME}.service" <<EOF
@@ -151,12 +163,15 @@ jobs:
             --after-install DEBIAN/postinst \
             --before-remove DEBIAN/prerm \
             --depends "nodejs (>= 22)" \
-            --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server + systemd-Service)" \
+            --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-Service und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-or-later" \
             --deb-systemd "etc/systemd/system/${PKG_NAME}.service" \
+            --deb-no-default-config-files \
+            --deb-suggests yt-dlp \
             -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
-            "${INSTALL_PREFIX#/}=$(dirname "${INSTALL_PREFIX}")"
+            "${INSTALL_PREFIX#/}=$(dirname "${INSTALL_PREFIX}")" \
+            "${PLUGIN_DIR#/}=$(dirname "${PLUGIN_DIR}")"
 
       - name: Artifact hochladen
         uses: actions/upload-artifact@v4
