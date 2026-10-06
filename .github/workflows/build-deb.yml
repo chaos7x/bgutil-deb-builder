@@ -21,6 +21,9 @@ on:
   repository_dispatch:
     types: [new-upstream-release]
 
+permissions:
+  contents: write
+
 env:
   PKG_NAME: bgutil-ytdlp-pot-provider
   UPSTREAM_REPO: Brainicism/bgutil-ytdlp-pot-provider
@@ -34,13 +37,19 @@ jobs:
     steps:
       - name: Neueste Upstream-Version ermitteln
         id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -n "${{ github.event.client_payload.version }}" ]; then
             VERSION="${{ github.event.client_payload.version }}"
           elif [ -n "${{ github.event.inputs.upstream_version }}" ]; then
             VERSION="${{ github.event.inputs.upstream_version }}"
           else
-            VERSION="$(curl -s https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest | jq -r .tag_name)"
+            VERSION="$(gh api "repos/${UPSTREAM_REPO}/releases/latest" --jq .tag_name)"
+          fi
+          if [ -z "${VERSION}" ] || [ "${VERSION}" = "null" ]; then
+            echo "::error::Upstream-Version konnte nicht ermittelt werden"
+            exit 1
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Baue Version: ${VERSION}"
@@ -160,7 +169,8 @@ jobs:
           path: "*.deb"
 
       - name: Als GitHub-Release veröffentlichen
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.ver.outputs.version }}
+          name: ${{ env.PKG_NAME }} ${{ steps.ver.outputs.version }}
           files: "*.deb"
