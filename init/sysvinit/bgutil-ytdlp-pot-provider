@@ -1,0 +1,88 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          bgutil-ytdlp-pot-provider
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: BgUtils POT Provider fuer yt-dlp
+# Description:       HTTP-Server, der Proof-of-Origin-Tokens fuer yt-dlp erzeugt.
+### END INIT INFO
+
+# sysvinit-Skript fuer Systeme ohne systemd (z. B. Devuan).
+# Einstellungen lassen sich in /etc/default/bgutil-ytdlp-pot-provider
+# ueberschreiben.
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=bgutil-ytdlp-pot-provider
+DESC="BgUtils POT Provider"
+APP_DIR=/usr/lib/bgutil-ytdlp-pot-provider
+DAEMON=/usr/bin/node
+DAEMON_ARGS="$APP_DIR/build/main.js"
+PIDFILE=/run/$NAME.pid
+LOGFILE=/var/log/$NAME.log
+RUN_AS=bgutil
+TOKEN_TTL=6
+
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+[ -x "$DAEMON" ] || exit 0
+[ -f "$APP_DIR/build/main.js" ] || exit 0
+
+. /lib/lsb/init-functions
+
+export TOKEN_TTL
+
+do_start() {
+	touch "$LOGFILE"
+	chown "$RUN_AS:$RUN_AS" "$LOGFILE"
+	start-stop-daemon --start --quiet --background --make-pidfile \
+		--pidfile "$PIDFILE" --chuid "$RUN_AS:$RUN_AS" --chdir "$APP_DIR" \
+		--output "$LOGFILE" --exec "$DAEMON" -- $DAEMON_ARGS
+}
+
+do_stop() {
+	start-stop-daemon --stop --quiet --retry=TERM/10/KILL/5 \
+		--pidfile "$PIDFILE" --exec "$DAEMON" --remove-pidfile
+}
+
+case "$1" in
+	start)
+		log_daemon_msg "Starting $DESC" "$NAME"
+		do_start
+		case "$?" in
+			0|1) log_end_msg 0 ;;
+			*) log_end_msg 1 ;;
+		esac
+		;;
+	stop)
+		log_daemon_msg "Stopping $DESC" "$NAME"
+		do_stop
+		case "$?" in
+			0|1) log_end_msg 0 ;;
+			*) log_end_msg 1 ;;
+		esac
+		;;
+	status)
+		status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME" && exit 0 || exit $?
+		;;
+	restart|force-reload)
+		log_daemon_msg "Restarting $DESC" "$NAME"
+		do_stop
+		case "$?" in
+			0|1)
+				do_start
+				case "$?" in
+					0) log_end_msg 0 ;;
+					*) log_end_msg 1 ;;
+				esac
+				;;
+			*) log_end_msg 1 ;;
+		esac
+		;;
+	*)
+		echo "Usage: /etc/init.d/$NAME {start|stop|status|restart|force-reload}" >&2
+		exit 3
+		;;
+esac
+
+exit 0
