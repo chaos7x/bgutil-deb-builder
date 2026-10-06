@@ -215,6 +215,7 @@ jobs:
             "https://github.com/${UPSTREAM_REPO}.git" src
 
       - name: In FreeBSD bauen und testen
+        timeout-minutes: 30
         uses: vmactions/freebsd-vm@v1
         with:
           release: "14.3"
@@ -228,11 +229,12 @@ jobs:
             # Rauchtest: installieren, Dienst starten, /ping abfragen, entfernen.
             pkg add out/*.pkg
             sysrc bgutil_ytdlp_pot_provider_enable=YES
-            service bgutil_ytdlp_pot_provider start
+            timeout 30 service bgutil_ytdlp_pot_provider start
             sleep 5
-            fetch -qo - http://127.0.0.1:4416/ping
+            timeout 15 fetch -T 10 -qo - http://127.0.0.1:4416/ping
             echo
-            service bgutil_ytdlp_pot_provider stop
+            timeout 30 service bgutil_ytdlp_pot_provider stop
+            ! pgrep -f 'build/main.js'
             pkg delete -y bgutil-ytdlp-pot-provider
 
       - name: Artifact hochladen

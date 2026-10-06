@@ -35,7 +35,7 @@ pidfile="${piddir}/${name}.pid"
 node="/usr/local/bin/node"
 
 command="/usr/sbin/daemon"
-command_args="-r -P ${pidfile} -o ${bgutil_ytdlp_pot_provider_logfile} \
+command_args="-f -r -P ${pidfile} -o ${bgutil_ytdlp_pot_provider_logfile} \
 -u ${bgutil_ytdlp_pot_provider_user} ${node} ${bgutil_ytdlp_pot_provider_dir}/build/main.js"
 
 start_precmd="${name}_prestart"
