@@ -17,6 +17,25 @@ RC_NAME=bgutil_ytdlp_pot_provider
 WORK="$(mktemp -d)"
 STAGE="$WORK/stage"
 
+# libbz2 gehört auf FreeBSD zum Basissystem und hat keine bzip2.pc, die
+# freetype2.pc aber verlangt; ohne sie scheitert der canvas-Build an
+# "pkg-config cairo --libs".
+if ! pkg-config --exists bzip2; then
+  mkdir -p "$WORK/pkgconfig"
+  cat > "$WORK/pkgconfig/bzip2.pc" <<PC
+prefix=/usr
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: bzip2
+Description: bzip2 aus dem FreeBSD-Basissystem
+Version: 1.0.8
+Libs: -L\${libdir} -lbz2
+Cflags: -I\${includedir}
+PC
+  export PKG_CONFIG_PATH="$WORK/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+fi
+
 # Server bauen; danach Entwicklungsabhängigkeiten (tsc, eslint, ...) entfernen.
 cd "$SRC/server"
 npm ci
