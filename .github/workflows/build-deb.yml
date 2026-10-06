@@ -94,6 +94,9 @@ jobs:
             npm install
           fi
           npx tsc
+          # Entwicklungsabhängigkeiten (tsc, eslint, ...) braucht der Dienst
+          # zur Laufzeit nicht; wie im FreeBSD-Build entfernen.
+          npm prune --omit=dev
 
       - name: Staging-Verzeichnis vorbereiten
         run: |
