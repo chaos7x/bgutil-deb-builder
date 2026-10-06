@@ -230,17 +230,17 @@ jobs:
             pkg add out/*.pkg
             sysrc bgutil_ytdlp_pot_provider_enable=YES
             cat > smoke.sh <<'SMOKE'
-            timeout 30 service bgutil_ytdlp_pot_provider start
+            timeout --foreground 30 service bgutil_ytdlp_pot_provider start
             sleep 5
             timeout 15 fetch -T 10 -qo - http://127.0.0.1:4416/ping
             echo
-            timeout 30 service bgutil_ytdlp_pot_provider stop
+            timeout --foreground 30 service bgutil_ytdlp_pot_provider stop
             ! pgrep -f 'build/main.js'
             SMOKE
             if ! sh -ex smoke.sh; then
               echo "--- Log ---"
               tail -n 50 /var/log/bgutil-ytdlp-pot-provider.log || true
-              ps auxww | grep -v grep | grep -e daemon -e node || true
+              pgrep -lf build/main.js || true
               exit 1
             fi
             pkg delete -y bgutil-ytdlp-pot-provider
