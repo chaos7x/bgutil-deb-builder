@@ -28,8 +28,10 @@ load_rc_config $name
 : ${bgutil_ytdlp_pot_provider_logfile:="/var/log/bgutil-ytdlp-pot-provider.log"}
 
 # daemon(8) ueberwacht node und startet es bei Absturz neu (-r);
-# die PID-Datei gehoert dem Ueberwachungsprozess.
-pidfile="/var/run/${name}.pid"
+# die PID-Datei gehoert dem Ueberwachungsprozess. daemon schreibt sie erst
+# nach dem Wechsel zum Dienstbenutzer, deshalb ein eigenes Verzeichnis.
+piddir="/var/run/${name}"
+pidfile="${piddir}/${name}.pid"
 node="/usr/local/bin/node"
 
 command="/usr/sbin/daemon"
@@ -43,6 +45,7 @@ bgutil_ytdlp_pot_provider_prestart()
 	if [ ! -f "${bgutil_ytdlp_pot_provider_dir}/build/main.js" ]; then
 		err 1 "${bgutil_ytdlp_pot_provider_dir}/build/main.js nicht gefunden"
 	fi
+	install -d -o "${bgutil_ytdlp_pot_provider_user}" -m 755 "${piddir}"
 	touch "${bgutil_ytdlp_pot_provider_logfile}"
 	chown "${bgutil_ytdlp_pot_provider_user}" "${bgutil_ytdlp_pot_provider_logfile}"
 	cd "${bgutil_ytdlp_pot_provider_dir}" || return 1
