@@ -115,6 +115,7 @@ Upstream-Tag; leer gelassen wird das neueste Release gebaut.
 init/systemd/        systemd-Unit
 init/sysvinit/       init.d-Skript für Systeme ohne systemd
 init/freebsd/        rc.d-Skript und FreeBSD-Anleitung
+debian/copyright     Lizenzangaben, die das .deb mitliefert
 freebsd/             Build-Skript für das FreeBSD-pkg
 ```
 
@@ -123,3 +124,8 @@ freebsd/             Build-Skript für das FreeBSD-pkg
 Die Pakete enthalten Software aus
 [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider),
 die unter GPL-3.0 steht.
+
+Dieses Repo selbst steht ebenfalls unter GPL-3.0 (siehe [LICENSE](LICENSE)),
+wie upstream. Das .deb liefert die Lizenzangaben unter
+`/usr/share/doc/bgutil-ytdlp-pot-provider/copyright` mit, das FreeBSD-pkg
+den Lizenztext unter `/usr/local/share/doc/bgutil-ytdlp-pot-provider/LICENSE`.
