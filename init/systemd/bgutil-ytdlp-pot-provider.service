@@ -6,15 +6,19 @@ Documentation=https://github.com/Brainicism/bgutil-ytdlp-pot-provider
 [Service]
 Type=simple
 WorkingDirectory=/usr/lib/bgutil-ytdlp-pot-provider
-ExecStart=/usr/bin/node /usr/lib/bgutil-ytdlp-pot-provider/build/main.js
+# Startet Node.js >= 22.13, sonst Deno; mit JS_RUNTIME=node bzw. deno fest waehlbar.
+ExecStart=/usr/lib/bgutil-ytdlp-pot-provider/start-server
 Restart=on-failure
 RestartSec=5
 User=bgutil
 Group=bgutil
 Environment=TOKEN_TTL=6
+Environment=JS_RUNTIME=auto
 NoNewPrivileges=true
 ProtectSystem=strict
 ReadWritePaths=/usr/lib/bgutil-ytdlp-pot-provider
+# Cache fuer Deno (/var/cache/bgutil-ytdlp-pot-provider)
+CacheDirectory=bgutil-ytdlp-pot-provider
 PrivateTmp=true
 
 [Install]

@@ -17,7 +17,7 @@ Neue Upstream-Versionen werden automatisch gebaut.
 | Dienst (sysvinit / rc.d) | `/etc/init.d/bgutil-ytdlp-pot-provider` | `/usr/local/etc/rc.d/bgutil_ytdlp_pot_provider` |
 | yt-dlp-Plugin | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` |
 | Dienstbenutzer | `bgutil` | `bgutil` |
-| Node.js | `nodejs (>= 22.13)` | `node22` oder neuer |
+| JavaScript-Laufzeit | `nodejs (>= 22.13)` oder `deno (>= 2.4.3)` | `node22` oder neuer |
 
 Der Server lauscht auf `http://127.0.0.1:4416`, der Standardadresse des
 Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
@@ -26,8 +26,9 @@ Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
 
 ### Debian / Devuan
 
-Benötigt `nodejs` ab 22.13. Debian 13 (trixie) liefert nur Node.js 20, deshalb
-vorher Node.js 22 aus dem Repo von
+Benötigt `nodejs` ab 22.13 oder `deno` ab 2.4.3. Debian 13 (trixie) liefert
+nur Node.js 20. Ist ein `deno`-Paket installiert, reicht das. Sonst vorher
+Node.js 22 aus dem Repo von
 [NodeSource](https://github.com/nodesource/distributions) einrichten:
 
 ```sh
@@ -74,6 +75,23 @@ tail /var/log/bgutil-ytdlp-pot-provider.log
 
 Einstellungen für das init.d-Skript (z. B. `TOKEN_TTL`) lassen sich in
 `/etc/default/bgutil-ytdlp-pot-provider` überschreiben.
+
+#### Node.js oder Deno
+
+Der Dienst nimmt Node.js, wenn es ab Version 22.13 installiert ist, sonst
+Deno (`/usr/bin/deno` bzw. aus dem `PATH`). Fest wählen lässt sich die
+Laufzeit mit `JS_RUNTIME=node` oder `JS_RUNTIME=deno`, unter systemd per
+Drop-in:
+
+```ini
+[Service]
+Environment=JS_RUNTIME=deno
+```
+
+Ohne systemd steht dieselbe Zeile ohne `Environment=` in
+`/etc/default/bgutil-ytdlp-pot-provider`. Deno legt seinen Cache unter
+`/var/cache/bgutil-ytdlp-pot-provider` an; der erste Start dauert deshalb
+etwas länger.
 
 ### FreeBSD
 
@@ -124,6 +142,7 @@ Upstream-Tag; leer gelassen wird das neueste Release gebaut.
 .github/workflows/   Watcher und Build-Workflow
 init/systemd/        systemd-Unit
 init/sysvinit/       init.d-Skript für Systeme ohne systemd
+init/start-server    Startskript, wählt Node.js oder Deno
 init/freebsd/        rc.d-Skript und FreeBSD-Anleitung
 debian/copyright     Lizenzangaben, die das .deb mitliefert
 freebsd/             Build-Skript für das FreeBSD-pkg

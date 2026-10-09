@@ -1,0 +1,47 @@
+#!/bin/sh
+# Startet den BgUtils POT Provider mit Node.js oder Deno.
+#
+# JS_RUNTIME waehlt die Laufzeit: auto (Standard), node oder deno.
+# Bei auto wird Node.js ab 22.13 genommen, sonst Deno.
+# APP_DIR und DENO_DIR lassen sich ebenfalls ueber die Umgebung setzen.
+set -e
+
+APP_DIR="${APP_DIR:-/usr/lib/bgutil-ytdlp-pot-provider}"
+JS_RUNTIME="${JS_RUNTIME:-auto}"
+
+node_ok() {
+	command -v node >/dev/null 2>&1 && node -e '
+		const [a, b] = process.versions.node.split(".").map(Number);
+		process.exit(a > 22 || (a === 22 && b >= 13) ? 0 : 1);'
+}
+
+if [ "$JS_RUNTIME" = auto ]; then
+	if node_ok; then
+		JS_RUNTIME=node
+	elif command -v deno >/dev/null 2>&1; then
+		JS_RUNTIME=deno
+	else
+		echo "Weder Node.js >= 22.13 noch Deno gefunden." >&2
+		exit 1
+	fi
+fi
+
+cd "$APP_DIR"
+case "$JS_RUNTIME" in
+	node)
+		exec node "$APP_DIR/build/main.js" "$@"
+		;;
+	deno)
+		# Wie upstream im Deno-Docker-Image: Abhaengigkeiten kommen aus
+		# node_modules, Deno uebersetzt src/*.ts und legt das in DENO_DIR ab.
+		export DENO_DIR="${DENO_DIR:-/var/cache/bgutil-ytdlp-pot-provider/deno}"
+		export DENO_NO_PROMPT=1 DENO_NO_UPDATE_CHECK=1
+		exec deno run --allow-env --allow-net \
+			--allow-ffi="$APP_DIR/node_modules" --allow-read="$APP_DIR/node_modules" \
+			"$APP_DIR/src/main.ts" "$@"
+		;;
+	*)
+		echo "Unbekannte JS_RUNTIME: $JS_RUNTIME (auto, node oder deno)" >&2
+		exit 1
+		;;
+esac

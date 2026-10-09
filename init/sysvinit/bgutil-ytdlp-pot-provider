@@ -17,12 +17,14 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 NAME=bgutil-ytdlp-pot-provider
 DESC="BgUtils POT Provider"
 APP_DIR=/usr/lib/bgutil-ytdlp-pot-provider
-DAEMON=/usr/bin/node
-DAEMON_ARGS="$APP_DIR/build/main.js"
+# Startet Node.js >= 22.13, sonst Deno (JS_RUNTIME=auto|node|deno).
+DAEMON=$APP_DIR/start-server
+CACHE_DIR=/var/cache/$NAME
 PIDFILE=/run/$NAME.pid
 LOGFILE=/var/log/$NAME.log
 RUN_AS=bgutil
 TOKEN_TTL=6
+JS_RUNTIME=auto
 
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 [ -x "$DAEMON" ] || exit 0
@@ -30,19 +32,23 @@ TOKEN_TTL=6
 
 . /lib/lsb/init-functions
 
-export TOKEN_TTL
+export TOKEN_TTL JS_RUNTIME
 
+# start-server ersetzt sich per exec durch node bzw. deno, deshalb gleicht
+# start-stop-daemon den laufenden Prozess nur ueber die PID-Datei ab.
 do_start() {
 	touch "$LOGFILE"
 	chown "$RUN_AS:$RUN_AS" "$LOGFILE"
+	mkdir -p "$CACHE_DIR"
+	chown "$RUN_AS:$RUN_AS" "$CACHE_DIR"
 	start-stop-daemon --start --quiet --background --make-pidfile \
 		--pidfile "$PIDFILE" --chuid "$RUN_AS:$RUN_AS" --chdir "$APP_DIR" \
-		--output "$LOGFILE" --exec "$DAEMON" -- $DAEMON_ARGS
+		--output "$LOGFILE" --startas "$DAEMON"
 }
 
 do_stop() {
 	start-stop-daemon --stop --quiet --retry=TERM/10/KILL/5 \
-		--pidfile "$PIDFILE" --exec "$DAEMON" --remove-pidfile
+		--pidfile "$PIDFILE" --remove-pidfile
 }
 
 case "$1" in
