@@ -105,6 +105,10 @@ jobs:
           mkdir -p "${STAGE}/etc/systemd/system"
           cp -r src/server/build src/server/node_modules src/server/package.json \
             "${STAGE}${INSTALL_PREFIX}/"
+          # Für Deno: TypeScript-Quellen wie im Deno-Docker-Image von upstream.
+          cp -r src/server/src src/server/types src/server/tsconfig.json \
+            src/server/deno.lock "${STAGE}${INSTALL_PREFIX}/"
+          install -m 0755 builder/init/start-server "${STAGE}${INSTALL_PREFIX}/start-server"
           echo "STAGE=${STAGE}" >> "$GITHUB_ENV"
 
       - name: yt-dlp-Plugin bündeln
@@ -162,6 +166,8 @@ jobs:
           # Runlevel-Links schon beim Entfernen löschen: fpm verdrahtet
           # --deb-after-purge nicht, und postinst legt sie neu an.
           update-rc.d -f ${PKG_NAME} remove >/dev/null 2>&1 || true
+          # Deno-Cache; wird beim nächsten Start neu aufgebaut.
+          rm -rf /var/cache/${PKG_NAME}
           EOF
           chmod 0755 "${STAGE}/DEBIAN/postinst" "${STAGE}/DEBIAN/postupgrade" \
             "${STAGE}/DEBIAN/prerm" "${STAGE}/DEBIAN/postrm"
@@ -179,7 +185,7 @@ jobs:
             --after-upgrade DEBIAN/postupgrade \
             --before-remove DEBIAN/prerm \
             --after-remove DEBIAN/postrm \
-            --depends "nodejs (>= 22.13)" \
+            --depends "nodejs (>= 22.13) | deno (>= 2.4.3)" \
             --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-/sysvinit-Dienst und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-only" \
