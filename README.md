@@ -17,7 +17,7 @@ Neue Upstream-Versionen werden automatisch gebaut.
 | Dienst (sysvinit / rc.d) | `/etc/init.d/bgutil-ytdlp-pot-provider` | `/usr/local/etc/rc.d/bgutil_ytdlp_pot_provider` |
 | yt-dlp-Plugin | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` |
 | Dienstbenutzer | `bgutil` | `bgutil` |
-| Node.js | `nodejs (>= 24)` | `node24` oder neuer |
+| Node.js | `nodejs (>= 22.13)` | `node22` oder neuer |
 
 Der Server lauscht auf `http://127.0.0.1:4416`, der Standardadresse des
 Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
@@ -26,12 +26,12 @@ Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
 
 ### Debian / Devuan
 
-Benötigt `nodejs` ab 24. Debian 13 (trixie) liefert nur Node.js 20, deshalb
-vorher Node.js 24 aus dem Repo von
+Benötigt `nodejs` ab 22.13. Debian 13 (trixie) liefert nur Node.js 20, deshalb
+vorher Node.js 22 aus dem Repo von
 [NodeSource](https://github.com/nodesource/distributions) einrichten:
 
 ```sh
-curl -fsSL https://deb.nodesource.com/setup_24.x -o nodesource_setup.sh
+curl -fsSL https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
 sudo bash nodesource_setup.sh
 sudo apt install nodejs
 node --version
@@ -78,7 +78,7 @@ Einstellungen für das init.d-Skript (z. B. `TOKEN_TTL`) lassen sich in
 ### FreeBSD
 
 ```sh
-pkg install node24
+pkg install node22
 fetch https://github.com/chaos7x/bgutil-deb-builder/releases/download/2.0.1/bgutil-ytdlp-pot-provider-2.0.1.pkg
 pkg add ./bgutil-ytdlp-pot-provider-2.0.1.pkg
 sysrc bgutil_ytdlp_pot_provider_enable=YES
@@ -108,7 +108,7 @@ auftauchen. Läuft der Server auf einer anderen Adresse, braucht yt-dlp:
   den Release-Feed von upstream. Bei einer neuen Version merkt er sie sich in
   `.github/last-upstream-version` und stößt den Build an.
 - [`build-deb.yml`](.github/workflows/build-deb.yml) klont den Upstream-Tag,
-  baut den Server mit Node.js 24, packt das `.deb` mit
+  baut den Server mit Node.js 22, packt das `.deb` mit
   [fpm](https://github.com/jordansissel/fpm) und baut in einer FreeBSD-VM das
   `.pkg` ([`freebsd/build-pkg.sh`](freebsd/build-pkg.sh)). Das FreeBSD-Paket
   wird vor dem Hochladen installiert und mit `/ping` getestet. Beide Pakete

@@ -105,8 +105,8 @@ EOD
 }
 messages: [
   { message: <<EOD
-Node.js 24 oder neuer wird benötigt, z. B.:
-  pkg install node24
+Node.js 22 oder neuer wird benötigt, z. B.:
+  pkg install node22
 Dienst aktivieren und starten:
   sysrc ${RC_NAME}_enable=YES
   service $RC_NAME start

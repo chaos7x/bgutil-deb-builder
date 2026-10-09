@@ -72,7 +72,7 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "22"
 
       - name: Ruby (für fpm) einrichten
         uses: ruby/setup-ruby@v1
@@ -179,7 +179,7 @@ jobs:
             --after-upgrade DEBIAN/postupgrade \
             --before-remove DEBIAN/prerm \
             --after-remove DEBIAN/postrm \
-            --depends "nodejs (>= 24)" \
+            --depends "nodejs (>= 22.13)" \
             --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-/sysvinit-Dienst und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-only" \
@@ -228,7 +228,7 @@ jobs:
           release: "14.3"
           usesh: true
           prepare: |
-            pkg install -y node24 npm-node24 git zip gmake pkgconf python3 \
+            pkg install -y node22 npm-node22 git zip gmake pkgconf python3 \
               cairo pango jpeg-turbo giflib librsvg2-rust
           run: |
             set -e
