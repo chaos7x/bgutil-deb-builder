@@ -179,7 +179,7 @@ jobs:
             --after-upgrade DEBIAN/postupgrade \
             --before-remove DEBIAN/prerm \
             --after-remove DEBIAN/postrm \
-            --depends "nodejs (>= 20.19)" \
+            --depends "nodejs (>= 22.13)" \
             --description "Proof-of-origin token provider fuer yt-dlp (HTTP-Server, systemd-/sysvinit-Dienst und yt-dlp-Plugin)" \
             --url "https://github.com/${UPSTREAM_REPO}" \
             --license "GPL-3.0-only" \

@@ -17,7 +17,7 @@ Neue Upstream-Versionen werden automatisch gebaut.
 | Dienst (sysvinit / rc.d) | `/etc/init.d/bgutil-ytdlp-pot-provider` | `/usr/local/etc/rc.d/bgutil_ytdlp_pot_provider` |
 | yt-dlp-Plugin | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` | `/etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip` |
 | Dienstbenutzer | `bgutil` | `bgutil` |
-| Node.js | `nodejs (>= 20.19)` | `node22` oder neuer |
+| Node.js | `nodejs (>= 22.13)` | `node22` oder neuer |
 
 Der Server lauscht auf `http://127.0.0.1:4416`, der Standardadresse des
 Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
@@ -26,8 +26,18 @@ Plugins. yt-dlp braucht deshalb keine zusätzliche Konfiguration.
 
 ### Debian / Devuan
 
-Benötigt `nodejs` ab 20.19: Debian 13 (trixie) und neuer bringen das mit,
-für ältere Versionen gibt es [NodeSource](https://github.com/nodesource/distributions).
+Benötigt `nodejs` ab 22.13. Debian 13 (trixie) liefert nur Node.js 20, deshalb
+vorher Node.js 22 aus dem Repo von
+[NodeSource](https://github.com/nodesource/distributions) einrichten:
+
+```sh
+curl -fsSL https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
+sudo bash nodesource_setup.sh
+sudo apt install nodejs
+node --version
+```
+
+Danach das Paket installieren:
 
 ```sh
 wget https://github.com/chaos7x/bgutil-deb-builder/releases/download/2.0.1/bgutil-ytdlp-pot-provider_2.0.1_amd64.deb
