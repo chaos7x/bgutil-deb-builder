@@ -211,6 +211,21 @@ jobs:
           name: ${{ env.PKG_NAME }} ${{ steps.ver.outputs.version }}
           files: "*.deb"
 
+      - name: .debs zu Gemfury hochladen
+        env:
+          FURY_PUSH_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
+        run: |
+          set -eu
+          for f in *.deb; do
+            code=$(curl -sS -o fury-resp.txt -w '%{http_code}' \
+              -u "$FURY_PUSH_TOKEN:" -F "package=@$f" https://push.fury.io/chaos7x/)
+            case "$code" in
+              2??) echo "$f hochgeladen" ;;
+              409) echo "::warning::$f ist bei Gemfury schon vorhanden" ;;
+              *)   cat fury-resp.txt; echo "::error::$f: HTTP $code"; exit 1 ;;
+            esac
+          done
+
   freebsd:
     # Baut dasselbe Upstream-Release als FreeBSD-pkg in einer FreeBSD-VM und
     # hängt es an das Release, das der build-Job angelegt hat.
