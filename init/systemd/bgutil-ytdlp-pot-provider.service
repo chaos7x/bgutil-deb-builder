@@ -14,6 +14,8 @@ User=bgutil
 Group=bgutil
 Environment=TOKEN_TTL=6
 Environment=JS_RUNTIME=auto
+# Werte aus dieser Datei haben Vorrang vor den Environment=-Zeilen oben.
+EnvironmentFile=-/etc/default/bgutil-ytdlp-pot-provider
 NoNewPrivileges=true
 ProtectSystem=strict
 ReadWritePaths=/usr/lib/bgutil-ytdlp-pot-provider
