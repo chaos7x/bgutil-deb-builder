@@ -53,18 +53,6 @@ systemctl status bgutil-ytdlp-pot-provider
 journalctl -u bgutil-ytdlp-pot-provider
 ```
 
-Einstellungen wie `TOKEN_TTL` lassen sich per Drop-in ändern, ohne die
-Unit selbst anzufassen:
-
-```sh
-sudo systemctl edit bgutil-ytdlp-pot-provider
-```
-
-```ini
-[Service]
-Environment=TOKEN_TTL=12
-```
-
 Ohne systemd (z. B. Devuan) wird der Dienst bei der Installation automatisch
 registriert und gestartet:
 
@@ -73,23 +61,46 @@ sudo service bgutil-ytdlp-pot-provider status
 tail /var/log/bgutil-ytdlp-pot-provider.log
 ```
 
-Einstellungen für das init.d-Skript (z. B. `TOKEN_TTL`) lassen sich in
-`/etc/default/bgutil-ytdlp-pot-provider` überschreiben.
+#### Einstellungen in /etc/default/bgutil-ytdlp-pot-provider
+
+Das Paket bringt eine kommentierte Vorlage mit, die sowohl der systemd-Dienst
+(`EnvironmentFile=`) als auch das init.d-Skript lesen. Zum Ändern die
+gewünschte Zeile einkommentieren:
+
+```sh
+sudo nano /etc/default/bgutil-ytdlp-pot-provider
+```
+
+```sh
+# Laufzeit fest wählen (Standard auto)
+#JS_RUNTIME=node
+JS_RUNTIME=deno
+
+# Gültigkeit der Tokens in Stunden
+#TOKEN_TTL=6
+```
+
+Danach den Dienst neu starten:
+
+```sh
+sudo systemctl restart bgutil-ytdlp-pot-provider
+```
+
+bzw. ohne systemd:
+
+```sh
+sudo service bgutil-ytdlp-pot-provider restart
+```
+
+Die Datei ist eine conffile: Updates überschreiben eigene Änderungen nicht,
+dpkg fragt bei einer geänderten Vorlage nach.
 
 #### Node.js oder Deno
 
-Der Dienst nimmt Node.js, wenn es ab Version 22.13 installiert ist, sonst
-Deno (`/usr/bin/deno` bzw. aus dem `PATH`). Fest wählen lässt sich die
-Laufzeit mit `JS_RUNTIME=node` oder `JS_RUNTIME=deno`, unter systemd per
-Drop-in:
-
-```ini
-[Service]
-Environment=JS_RUNTIME=deno
-```
-
-Ohne systemd steht dieselbe Zeile ohne `Environment=` in
-`/etc/default/bgutil-ytdlp-pot-provider`. Deno legt seinen Cache unter
+Mit `JS_RUNTIME=auto` (Standard) nimmt der Dienst Node.js, wenn es ab
+Version 22.13 installiert ist, sonst Deno (`/usr/bin/deno` bzw. aus dem
+`PATH`). Fest wählen lässt sich die Laufzeit mit `JS_RUNTIME=node` oder
+`JS_RUNTIME=deno` in der Datei oben. Deno legt seinen Cache unter
 `/var/cache/bgutil-ytdlp-pot-provider` an; der erste Start dauert deshalb
 etwas länger.
 

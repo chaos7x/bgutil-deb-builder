@@ -12,8 +12,19 @@ Restart=on-failure
 RestartSec=5
 User=bgutil
 Group=bgutil
+# Standardwerte. Zum Aendern nicht diese Datei bearbeiten (wird bei Updates
+# ersetzt), sondern /etc/default/bgutil-ytdlp-pot-provider, z. B.:
+#   JS_RUNTIME=node   oder   JS_RUNTIME=deno
+#   TOKEN_TTL=12
+# Alternativ per Drop-in (systemctl edit bgutil-ytdlp-pot-provider):
+#   [Service]
+#   Environment=JS_RUNTIME=deno
 Environment=TOKEN_TTL=6
 Environment=JS_RUNTIME=auto
+#Environment=JS_RUNTIME=node
+#Environment=JS_RUNTIME=deno
+# Werte aus dieser Datei haben Vorrang vor den Environment=-Zeilen oben.
+EnvironmentFile=-/etc/default/bgutil-ytdlp-pot-provider
 NoNewPrivileges=true
 ProtectSystem=strict
 ReadWritePaths=/usr/lib/bgutil-ytdlp-pot-provider

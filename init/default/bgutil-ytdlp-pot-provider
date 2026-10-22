@@ -1,0 +1,14 @@
+# Einstellungen fuer den BgUtils POT Provider.
+# Gelesen vom systemd-Dienst (EnvironmentFile=) und vom init.d-Skript.
+# Nur einfache Zeilen NAME=wert, ohne export und ohne Leerzeichen um das =.
+# Nach Aenderungen den Dienst neu starten:
+#   systemctl restart bgutil-ytdlp-pot-provider
+#   bzw. service bgutil-ytdlp-pot-provider restart
+
+# JavaScript-Laufzeit. Standard ist auto: Node.js ab 22.13, sonst Deno.
+# Zum festen Waehlen genau eine Zeile einkommentieren.
+#JS_RUNTIME=node
+#JS_RUNTIME=deno
+
+# Gueltigkeit der Tokens in Stunden (Standard 6).
+#TOKEN_TTL=6

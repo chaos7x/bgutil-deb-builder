@@ -11,7 +11,7 @@
 
 # sysvinit-Skript fuer Systeme ohne systemd (z. B. Devuan).
 # Einstellungen lassen sich in /etc/default/bgutil-ytdlp-pot-provider
-# ueberschreiben.
+# ueberschreiben (kommentierte Vorlage liegt dem Paket bei).
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 NAME=bgutil-ytdlp-pot-provider
