@@ -18,6 +18,10 @@ on:
         description: "Upstream-Tag (z.B. 1.3.2). Leer = neuestes Release."
         required: false
         default: ""
+      deb_revision:
+        description: "Debian-Revision (z.B. 2 ergibt 2.0.2-2), nur für Neubauten derselben Upstream-Version. Leer = keine."
+        required: false
+        default: ""
   repository_dispatch:
     types: [new-upstream-release]
 
@@ -181,9 +185,20 @@ jobs:
           cd "${STAGE}"
           VERSION="${{ steps.ver.outputs.version }}"
           VERSION="${VERSION#v}"
+          # Optionale Debian-Revision, damit apt/Gemfury einen Neubau derselben
+          # Upstream-Version als neuere Version erkennen.
+          REVISION="${{ github.event.inputs.deb_revision }}"
+          if [ -n "${REVISION}" ]; then
+            ITERATION_ARGS="--iteration ${REVISION}"
+            DEB_VERSION="${VERSION}-${REVISION}"
+          else
+            ITERATION_ARGS=""
+            DEB_VERSION="${VERSION}"
+          fi
           fpm -s dir -t deb \
             -n "${PKG_NAME}" \
             -v "${VERSION}" \
+            ${ITERATION_ARGS} \
             -a "${ARCH}" \
             --after-install DEBIAN/postinst \
             --after-upgrade DEBIAN/postupgrade \
@@ -198,7 +213,7 @@ jobs:
             --deb-no-default-config-files \
             --config-files "/etc/default/${PKG_NAME}" \
             --deb-suggests yt-dlp \
-            -p "$GITHUB_WORKSPACE/${PKG_NAME}_${VERSION}_${ARCH}.deb" \
+            -p "$GITHUB_WORKSPACE/${PKG_NAME}_${DEB_VERSION}_${ARCH}.deb" \
             "${INSTALL_PREFIX#/}=$(dirname "${INSTALL_PREFIX}")" \
             "${PLUGIN_DIR#/}=$(dirname "${PLUGIN_DIR}")" \
             "usr/share/doc/${PKG_NAME}=/usr/share/doc" \
